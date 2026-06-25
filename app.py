@@ -1,6 +1,6 @@
-# app.py
 from flask import Flask, render_template, request, redirect, url_for, session
 import backend
+import copy
 
 app = Flask(__name__)
 app.secret_key = "iiuc_bus_scheduler_super_secret_key"
@@ -17,18 +17,31 @@ def home():
         boardings = request.form.getlist('boarding_time[]')
         
         bus_data = []
+        seen_ids = set()
+        
         for i in range(len(bus_ids)):
-            if bus_ids[i].strip():
+            bus_id_clean = bus_ids[i].strip()
+            if bus_id_clean:
+                if bus_id_clean in seen_ids:
+                    continue 
+                seen_ids.add(bus_id_clean)
+                
                 bus_data.append({
-                    'id': bus_ids[i],
-                    'arrival': int(arrivals[i]),
-                    'boarding': int(boardings[i])
+                    'id': bus_id_clean,
+                    'arrival': int(arrivals[i]) if arrivals[i] else 0,
+                    'boarding': int(boardings[i]) if boardings[i] else 1,
+                    'priority': 0 # Initialize default priority value
                 })
         
         session['bus_data'] = bus_data
+        session.modified = True
         return redirect(url_for('select_algorithm'))
         
-    return render_template('home.html')
+    bus_data = session.get('bus_data', [])
+    if not isinstance(bus_data, list):
+        bus_data = []
+        
+    return render_template('home.html', bus_data=bus_data)
 
 @app.route('/reset')
 def reset():
@@ -37,38 +50,70 @@ def reset():
 
 @app.route('/select-algorithm')
 def select_algorithm():
-    if 'bus_data' not in session:
-        return redirect(url_for('home'))
-        
-    bus_data = session['bus_data']
+    bus_data = session.get('bus_data', [])
     total_buses = len(bus_data)
     
-    short_boarding_count = sum(1 for b in bus_data if b['boarding'] <= 3)
-    long_boarding_count = sum(1 for b in bus_data if b['boarding'] >= 7)
-    
-    best_algo = "fcfs"
-    reason = "Your schedule has uniform, standard boarding patterns. FCFS will handle this sequentially without issues."
-    badge_color = "blue"
-    
-    if total_buses > 1:
-        sorted_by_arrival = sorted(bus_data, key=lambda x: x['arrival'])
-        if sorted_by_arrival[0]['boarding'] >= 6 and short_boarding_count >= 1:
-            best_algo = "srtf"
-            badge_color = "purple"
-            reason = "🚨 <strong>Convoy Hazard Detected!</strong> Your first bus has a very long boarding time, which will cause massive delays for faster buses behind it under standard lines. Preemptive scheduling (SRTF) is highly recommended to let short-stay buses bypass the queue."
-        elif short_boarding_count > long_boarding_count:
-            best_algo = "sjf"
-            badge_color = "emerald"
-            reason = "⚡ <strong>High Turnover Opportunity!</strong> You have several small shuttles/vans with short boarding times. Prioritizing them via Shortest Job First (SJF) will empty the terminal gates in record time."
-        elif long_boarding_count >= (total_buses / 2):
-            best_algo = "rr"
-            badge_color = "pink"
-            reason = "⏳ <strong>Heavy Traffic Congestion Risk!</strong> Multiple heavy intercity buses are competing for the bay. Round Robin will prevent gate monopolies by giving everyone a strict time limit (Quantum)."
+    if total_buses == 0:
+        recommendation = {
+            'best': 'none',
+            'badge_color': 'slate',
+            'reason': 'No bus fleet configurations found. Please populate terminal schedule data first.',
+            'comparisons': {}
+        }
+        return render_template('select_algorithm.html', recommendation=recommendation)
+
+    # Helper function to simulate a route and calculate its true average turnaround time (tst)
+    def calculate_simulation_att(algo_type):
+        try:
+            sim_data = copy.deepcopy(bus_data)
+            if algo_type == 'fcfs':
+                results, _ = backend.run_fcfs(sim_data)
+            elif algo_type == 'sjf':
+                results, _ = backend.run_sjf(sim_data)
+            elif algo_type == 'srtf':
+                results, _ = backend.run_srtf(sim_data)
+            elif algo_type == 'priority':
+                results, _ = backend.run_priority(sim_data)
+            elif algo_type == 'rr':
+                results, _ = backend.run_rr(sim_data, quantum=2)
             
+            if results:
+                # Total Stay Time (tst) is mathematically identical to Turnaround Time (TAT)
+                total_tst = sum(getattr(res, 'total_stay_time', 0) for res in results)
+                return total_tst / len(results)
+            return 999.0
+        except Exception:
+            return 999.0
+
+    # Execute simulation and grab true mathematical numbers
+    att_fcfs = calculate_simulation_att('fcfs')
+    att_sjf = calculate_simulation_att('sjf')
+    att_srtf = calculate_simulation_att('srtf')
+    att_priority = calculate_simulation_att('priority')
+    att_rr = calculate_simulation_att('rr')
+
+    performance_map = {
+        'fcfs': {'name': 'FCFS Policy', 'att': round(att_fcfs, 2), 'color': 'blue'},
+        'sjf': {'name': 'SJF Dispatch', 'att': round(att_sjf, 2), 'color': 'emerald'},
+        'srtf': {'name': 'SRTF Preemptive', 'att': round(att_srtf, 2), 'color': 'purple'},
+        'priority': {'name': 'Priority Scheduler', 'att': round(att_priority, 2), 'color': 'amber'},
+        'rr': {'name': 'Round Robin', 'att': round(att_rr, 2), 'color': 'pink'}
+    }
+
+    best_algo = min(performance_map, key=lambda k: performance_map[k]['att'])
+    winning_score = performance_map[best_algo]['att']
+    badge_color = performance_map[best_algo]['color']
+    
+    if winning_score >= 999.0:
+        reason = "⚠️ <strong>Simulation Layout Warning:</strong> The underlying algorithm modules did not return operational results datasets."
+    else:
+        reason = f"📊 <strong>Mathematical Optimization Analysis:</strong> Simulating your queue profile across all models indicates that <strong>{performance_map[best_algo]['name']}</strong> minimizes terminal congestion, yielding an optimal system Average Turnaround Time of <strong>{winning_score} mins</strong>."
+
     recommendation = {
         'best': best_algo,
         'badge_color': badge_color,
-        'reason': reason
+        'reason': reason,
+        'comparisons': performance_map
     }
     
     return render_template('select_algorithm.html', recommendation=recommendation)
@@ -89,11 +134,12 @@ def dashboard(algo):
                 prio_val = request.form.get(f"priority_{b['id']}", 0)
                 b['priority'] = int(prio_val)
             session['bus_data'] = bus_data
+            session.modified = True
 
     results = []
     gantt = []
     
-    # backend.py এর সাথে কানেকশন
+    # Run the real simulation for display view
     if algo == 'fcfs':
         results, gantt = backend.run_fcfs(bus_data)
     elif algo == 'sjf':
@@ -115,7 +161,7 @@ def dashboard(algo):
                 'id': res.bus_id,
                 'arrival': res.arrival_time,
                 'boarding': res.boarding_time,      
-                'priority': getattr(res, 'priority', 0), # এরর হ্যান্ডেল করার জন্য নিরাপদ মেথড
+                'priority': getattr(res, 'priority', 0), 
                 'dt': res.departure_time,          
                 'tst': res.total_stay_time,        
                 'wt': res.waiting_time             
@@ -123,7 +169,6 @@ def dashboard(algo):
         avg_wt = sum(r['wt'] for r in processed_results) / len(processed_results)
         avg_tst = sum(r['tst'] for r in processed_results) / len(processed_results)
 
-    # ডাইনামিক অপারেশনাল ইনসাইট কল
     operational_insights = backend.get_operational_insights(
         algo=algo, 
         results=results, 

@@ -10,28 +10,61 @@
         <div class="flex justify-between items-center mb-8">
             <div>
                 <h1 class="text-3xl font-bold text-white">Configure Terminal Schedule</h1>
-                <p class="text-slate-400 text-sm">Populate schedule profiles for incoming terminal buses</p>
+                <p class="text-slate-400 text-sm">Populate, adjust, or delete schedule profiles for incoming terminal buses</p>
             </div>
-            <a href="/reset" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm font-medium border border-slate-700 transition">Reset Bus Fleet</a>
+            <div class="flex gap-3">
+                <a href="/select-algorithm" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm font-medium border border-slate-700 transition">Back to Dashboard</a>
+                <a href="/reset" class="px-4 py-2 bg-rose-950/40 text-rose-400 hover:bg-rose-900/60 rounded-lg text-sm font-medium border border-rose-500/30 transition">Reset Bus Fleet</a>
+            </div>
         </div>
 
-        <form method="POST" class="space-y-6">
+        <form method="POST" onsubmit="return validateForm()" class="space-y-6">
             <div id="bus-container" class="space-y-4">
-                <div class="grid grid-cols-3 gap-4 bg-slate-800/50 p-4 rounded-xl border border-slate-700/60 dynamic-row">
-                    <div>
-                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Bus No / Route Code</label>
-                        <input type="text" name="bus_id[]" placeholder="e.g. ENA-01, HANIF-02" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+                
+                {% if bus_data and bus_data|length > 0 %}
+                    {% for bus in bus_data %}
+                    <div class="flex items-end gap-4 bg-slate-800/50 p-4 rounded-xl border border-slate-700/60 dynamic-row">
+                        <div class="flex-1 grid grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Bus No / Route Code</label>
+                                <input type="text" name="bus_id[]" value="{{ bus.id }}" placeholder="e.g. ENA-01" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Arrival Time</label>
+                                <input type="number" name="arrival_time[]" value="{{ bus.arrival }}" min="0" placeholder="e.g. 0" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Required Boarding</label>
+                                <input type="number" name="boarding_time[]" value="{{ bus.boarding }}" min="1" placeholder="e.g. 5" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+                            </div>
+                        </div>
+                        <button type="button" onclick="deleteRow(this)" class="px-4 py-2 text-sm font-semibold bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white rounded-lg border border-rose-500/20 transition h-[42px]">
+                            Delete
+                        </button>
                     </div>
-                    <div>
-                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Arrival Time at Gate</label>
-                        <input type="number" name="arrival_time[]" min="0" placeholder="e.g. 0 (Mins/Hour)" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+                    {% endfor %}
+                {% else %}
+                    <div class="flex items-end gap-4 bg-slate-800/50 p-4 rounded-xl border border-slate-700/60 dynamic-row">
+                        <div class="flex-1 grid grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Bus No / Route Code</label>
+                                <input type="text" name="bus_id[]" placeholder="e.g. ENA-01, HANIF-02" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Arrival Time at Gate</label>
+                                <input type="number" name="arrival_time[]" min="0" placeholder="e.g. 0 (Mins/Hour)" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Required Boarding Time</label>
+                                <input type="number" name="boarding_time[]" min="1" placeholder="e.g. 5 (Mins/Hour)" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+                            </div>
+                        </div>
+                        <button type="button" onclick="deleteRow(this)" class="px-4 py-2 text-sm font-semibold bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white rounded-lg border border-rose-500/20 transition h-[42px]">
+                            Delete
+                        </button>
                     </div>
-                    <div>
-                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Required Boarding Time</label>
-                        <!-- name পরিবর্তন করে boarding_time[] করা হয়েছে -->
-                        <input type="number" name="boarding_time[]" min="1" placeholder="e.g. 5 (Mins/Hour)" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
-                    </div>
-                </div>
+                {% endif %}
+
             </div>
 
             <div class="flex gap-4 pt-4">
@@ -48,10 +81,63 @@
     <script>
         function addNewRow() {
             const container = document.getElementById('bus-container');
-            const newRow = document.querySelector('.dynamic-row').cloneNode(true);
-            const inputs = newRow.querySelectorAll('input');
-            inputs.forEach(input => input.value = '');
-            container.appendChild(newRow);
+            const targetRow = document.querySelector('.dynamic-row');
+            
+            if (targetRow) {
+                const newRow = targetRow.cloneNode(true);
+                const inputs = newRow.querySelectorAll('input');
+                inputs.forEach(input => input.value = '');
+                container.appendChild(newRow);
+            } else {
+                const fallbackRow = document.createElement('div');
+                fallbackRow.className = "flex items-end gap-4 bg-slate-800/50 p-4 rounded-xl border border-slate-700/60 dynamic-row";
+                fallbackRow.innerHTML = `
+                    <div class="flex-1 grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Bus No / Route Code</label>
+                            <input type="text" name="bus_id[]" placeholder="e.g. ENA-01" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Arrival Time</label>
+                            <input type="number" name="arrival_time[]" min="0" placeholder="e.g. 0" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Required Boarding</label>
+                            <input type="number" name="boarding_time[]" min="1" placeholder="e.g. 5" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+                        </div>
+                    </div>
+                    <button type="button" onclick="deleteRow(this)" class="px-4 py-2 text-sm font-semibold bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white rounded-lg border border-rose-500/20 transition h-[42px]">
+                        Delete
+                    </button>
+                `;
+                container.appendChild(fallbackRow);
+            }
+        }
+
+        function deleteRow(buttonElement) {
+            const row = buttonElement.closest('.dynamic-row');
+            if (row) {
+                row.remove();
+            }
+        }
+
+        // New Validation Engine to guard against identical IDs
+        function validateForm() {
+            const idInputs = document.querySelectorAll('input[name="bus_id[]"]');
+            const values = [];
+            
+            for (let input of idInputs) {
+                const val = input.value.trim().toUpperCase();
+                if (val) {
+                    if (values.includes(val)) {
+                        alert(`❌ Duplicate Entry Detected: The Bus ID "${input.value}" has been used more than once. Please assign unique identifiers.`);
+                        input.focus();
+                        return false; // Blocks form submission execution context
+                    }
+                    values.push(val);
+                }
+            }
+            return true;
         }
     </script>
 </body>
