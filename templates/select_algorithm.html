@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Terminal Dispatch Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-8 flex flex-col justify-center items-center">
+    <div class="max-w-4xl w-full space-y-8">
+        
+        <div class="flex justify-between items-center bg-slate-800/60 p-4 rounded-2xl border border-slate-700/50">
+            <div class="flex items-center gap-2">
+                <span class="text-xl">🚌</span>
+                <span class="text-xs uppercase tracking-wider text-slate-400 font-bold">Fleet Management System</span>
+            </div>
+            
+            <div class="text-right">
+                {% if bus_data %}
+                    <button id="toggle-edit-btn" onclick="switchToEditMode()" class="px-5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-950/40 transition">
+                        ⚙️ Update Your Input
+                    </button>
+                    <p id="toggle-edit-sub" class="text-[10px] text-slate-400 mt-1 mr-1">Update/Delete active fleet data</p>
+                {% else %}
+                    <span class="px-3 py-1.5 bg-slate-900 border border-slate-700 text-slate-400 text-xs font-bold rounded-lg uppercase tracking-wider">
+                        Status: Awaiting Fleet Input
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div id="input-container" class="{% if bus_data %}hidden{% endif %} bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl max-w-2xl mx-auto w-full">
+            <h3 class="text-xl font-black text-white mb-2 flex items-center gap-2">📥 Initialize/Modify Fleet Terminal Data</h3>
+            <p class="text-xs text-slate-400 mb-6">Enter or recalibrate entry schedules and boarding times for the active queue setup.</p>
+            
+            <form action="/" method="POST" class="space-y-4">
+                <div id="dynamic-rows-container" class="space-y-3">
+                    
+                    {% if not bus_data %}
+                        <div class="grid grid-cols-3 gap-3 bg-slate-900/40 p-3 rounded-xl border border-slate-700/40">
+                            <input type="text" name="bus_id[]" placeholder="Bus ID (e.g., B1)" class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" required>
+                            <input type="number" name="arrival_time[]" placeholder="Arrival Time" min="0" class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" required>
+                            <input type="number" name="boarding_time[]" placeholder="Boarding Time" min="1" class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" required>
+                        </div>
+                        <div class="grid grid-cols-3 gap-3 bg-slate-900/40 p-3 rounded-xl border border-slate-700/40">
+                            <input type="text" name="bus_id[]" placeholder="Bus ID (e.g., B2)" class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" required>
+                            <input type="number" name="arrival_time[]" placeholder="Arrival Time" min="0" class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" required>
+                            <input type="number" name="boarding_time[]" placeholder="Boarding Time" min="1" class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" required>
+                        </div>
+                    
+                    {% else %}
+                        {% for bus in bus_data %}
+                        <div id="bus-row-{{ loop.index0 }}" class="flex flex-col sm:flex-row items-center gap-3 bg-slate-900/40 p-3 rounded-xl border border-slate-700/40">
+                            <div class="grid grid-cols-3 gap-3 flex-1 w-full">
+                                <input type="text" name="bus_id[]" value="{{ bus.id }}" placeholder="Bus ID" class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" required>
+                                <input type="number" name="arrival_time[]" value="{{ bus.arrival }}" placeholder="Arrival" min="0" class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" required>
+                                <input type="number" name="boarding_time[]" value="{{ bus.boarding }}" placeholder="Boarding" min="1" class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" required>
+                            </div>
+                            <button type="button" onclick="deleteBusRow({{ loop.index0 }})" class="w-full sm:w-auto px-3 py-1.5 text-xs font-semibold bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white rounded-lg border border-rose-500/20 transition">
+                                Delete
+                            </button>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+
+                </div>
+                
+                <div class="flex justify-between items-center pt-4 border-t border-slate-700/60">
+                    <button type="button" onclick="addNewBusRow()" class="text-xs font-bold text-blue-400 hover:text-blue-300 transition">+ Add More Bus Rows</button>
+                    <div class="flex gap-2">
+                        {% if bus_data %}
+                        <button type="button" onclick="cancelEditMode()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-sm font-semibold rounded-xl transition">Cancel</button>
+                        {% endif %}
+                        <button type="submit" class="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-sm font-bold rounded-xl shadow-lg transition">
+                            Save Fleet & Analyze &rarr;
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        {% if bus_data %}
+        <div id="results-display-wrapper" class="space-y-8 w-full">
+            <div class="text-center">
+                <h2 class="text-3xl font-black text-white mb-2">Choose Terminal Dispatch Policy</h2>
+                <p class="text-sm text-slate-400">Select an allocation model to optimize bus departure efficiencies at the terminal bay.</p>
+            </div>
+
+            <div class="bg-gradient-to-r from-slate-800 via-indigo-950/30 to-slate-800 p-6 rounded-2xl border border-indigo-500/30 shadow-xl">
+                <div class="flex items-center gap-3 mb-3">
+                    <span class="text-2xl">🧠</span>
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Smart Fleet Recommendation Engine</h3>
+                        <p class="text-xs text-slate-400">Pre-simulation mathematical check based on your submitted queue profile</p>
+                    </div>
+                </div>
+                <div class="bg-slate-900/70 p-4 rounded-xl border border-slate-700/50 mt-2">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-xs font-extrabold uppercase tracking-widest text-indigo-400">Optimal Policy Match:</span>
+                        <span class="px-2.5 py-0.5 text-xs font-bold rounded-full uppercase tracking-wider
+                            {% if recommendation.badge_color == 'purple' %} bg-purple-500/10 text-purple-400 border border-purple-500/30
+                            {% elif recommendation.badge_color == 'emerald' %} bg-emerald-500/10 text-emerald-400 border border-emerald-500/30
+                            {% elif recommendation.badge_color == 'pink' %} bg-pink-500/10 text-pink-400 border border-pink-500/30
+                            {% else %} bg-blue-500/10 text-blue-400 border border-blue-500/30 {% endif %} border">
+                            {{ recommendation.best|upper }} MODE
+                        </span>
+                    </div>
+                    <p class="text-sm text-slate-300 leading-relaxed font-medium">{{ recommendation.reason|safe }}</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <a href="/dashboard/fcfs" class="p-6 bg-slate-800/40 rounded-2xl border transition group flex flex-col justify-between
+                    {% if recommendation.best == 'fcfs' %} border-blue-500 bg-slate-800/90 shadow-lg shadow-blue-950/50 ring-2 ring-blue-500/30 {% else %} border-slate-700/70 hover:border-blue-500/50 hover:bg-slate-800/80 {% endif %}">
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="text-xl font-bold text-blue-400">FCFS Policy</h3>
+                            {% if recommendation.best == 'fcfs' %}<span class="text-xs bg-blue-500 text-white font-bold px-2 py-0.5 rounded-md">⭐ BEST</span>{% endif %}
+                        </div>
+                        <p class="text-slate-400 text-sm leading-relaxed">Dispatches buses linearly based purely on their arrival queue order at the gate. Non-preemptive system.</p>
+                    </div>
+                    <span class="mt-4 text-xs font-semibold text-blue-500 group-hover:underline">Launch Terminal Simulation &rarr;</span>
+                </a>
+
+                <a href="/dashboard/sjf" class="p-6 bg-slate-800/40 rounded-2xl border transition group flex flex-col justify-between
+                    {% if recommendation.best == 'sjf' %} border-emerald-500 bg-slate-800/90 shadow-lg shadow-emerald-950/50 ring-2 ring-emerald-500/30 {% else %} border-slate-700/70 hover:border-emerald-500/50 hover:bg-slate-800/80 {% endif %}">
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="text-xl font-bold text-emerald-400">SJF Dispatch</h3>
+                            {% if recommendation.best == 'sjf' %}<span class="text-xs bg-emerald-500 text-white font-bold px-2 py-0.5 rounded-md">⭐ BEST</span>{% endif %}
+                        </div>
+                        <p class="text-slate-400 text-sm leading-relaxed">Prioritizes shorter boarding times to quickly clear the bays and systematically minimize average delay.</p>
+                    </div>
+                    <span class="mt-4 text-xs font-semibold text-emerald-400 group-hover:underline">Launch Terminal Simulation &rarr;</span>
+                </a>
+
+                <a href="/dashboard/srtf" class="p-6 bg-slate-800/40 rounded-2xl border transition group flex flex-col justify-between
+                    {% if recommendation.best == 'srtf' %} border-purple-500 bg-slate-800/90 shadow-lg shadow-purple-950/50 ring-2 ring-purple-500/30 {% else %} border-slate-700/70 hover:border-purple-500/50 hover:bg-slate-800/80 {% endif %}">
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="text-xl font-bold text-purple-400">SRTF Preemptive</h3>
+                            {% if recommendation.best == 'srtf' %}<span class="text-xs bg-purple-500 text-white font-bold px-2 py-0.5 rounded-md">⭐ BEST</span>{% endif %}
+                        </div>
+                        <p class="text-slate-400 text-sm leading-relaxed">Interrupts a currently loading bus if an express bus with a shorter boarding duration enters the gate.</p>
+                    </div>
+                    <span class="mt-4 text-xs font-semibold text-purple-400 group-hover:underline">Launch Terminal Simulation &rarr;</span>
+                </a>
+
+                <a href="/dashboard/priority" class="p-6 bg-slate-800/40 rounded-2xl border transition group flex flex-col justify-between
+                    {% if recommendation.best == 'priority' %} border-amber-500 bg-slate-800/90 shadow-lg shadow-amber-950/50 ring-2 ring-amber-500/30 {% else %} border-slate-700/70 hover:border-amber-500/50 hover:bg-slate-800/80 {% endif %}">
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="text-xl font-bold text-amber-400">Priority Scheduler</h3>
+                            {% if recommendation.best == 'priority' %}<span class="text-xs bg-amber-500 text-white font-bold px-2 py-0.5 rounded-md">⭐ BEST</span>{% endif %}
+                        </div>
+                        <p class="text-slate-400 text-sm leading-relaxed">Allows high-priority routes (VIP Shuttles, Express Liners) to skip the standard queue directly to the bay.</p>
+                    </div>
+                    <span class="mt-4 text-xs font-semibold text-amber-500 group-hover:underline">Configure VIP Parameters &rarr;</span>
+                </a>
+
+                <a href="/dashboard/rr" class="p-6 bg-slate-800/40 rounded-2xl border transition group flex flex-col justify-between
+                    {% if recommendation.best == 'rr' %} border-pink-500 bg-slate-800/90 shadow-lg shadow-pink-950/50 ring-2 ring-pink-500/30 {% else %} border-slate-700/70 hover:border-pink-500/50 hover:bg-slate-800/80 {% endif %}">
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="text-xl font-bold text-pink-400">Round Robin</h3>
+                            {% if recommendation.best == 'rr' %}<span class="text-xs bg-pink-500 text-white font-bold px-2 py-0.5 rounded-md">⭐ BEST</span>{% endif %}
+                        </div>
+                        <p class="text-slate-400 text-sm leading-relaxed">Enforces balanced time slots (Bay Quantum Limits) per bus to ensure fair platform access and zero lane starvation.</p>
+                    </div>
+                    <span class="mt-4 text-xs font-semibold text-pink-500 group-hover:underline">Configure Bay Quantum &rarr;</span>
+                </a>
+            </div>
+            
+            <div class="text-center pt-4">
+                <a href="/reset" class="text-xs text-rose-400/70 hover:text-rose-400 underline transition">Wipe active fleet configuration and start fresh</a>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+
+    <script>
+        let rowCounter = document.querySelectorAll('#dynamic-rows-container > div').length;
+
+        // ইন-লাইন নতুন রো যোগ করার মেথড
+        function addNewBusRow() {
+            const container = document.getElementById('dynamic-rows-container');
+            const currentIndex = rowCounter++;
+            const row = document.createElement('div');
+            row.id = `bus-row-${currentIndex}`;
+            row.className = "flex flex-col sm:flex-row items-center gap-3 bg-slate-900/40 p-3 rounded-xl border border-slate-700/40";
+            
+            row.innerHTML = `
+                <div class="grid grid-cols-3 gap-3 flex-1 w-full">
+                    <input type="text" name="bus_id[]" placeholder="Bus ID" class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" required>
+                    <input type="number" name="arrival_time[]" placeholder="Arrival" min="0" class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" required>
+                    <input type="number" name="boarding_time[]" placeholder="Boarding" min="1" class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" required>
+                </div>
+                <button type="button" onclick="deleteBusRow(${currentIndex})" class="w-full sm:w-auto px-3 py-1.5 text-xs font-semibold bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white rounded-lg border border-rose-500/20 transition">
+                    Delete
+                </button>
+            `;
+            container.appendChild(row);
+        }
+
+        // ইন-লাইন রো ডিলিট করার মেথড
+        function deleteBusRow(index) {
+            const rowElement = document.getElementById(`bus-row-${index}`);
+            if (rowElement) {
+                // সাবমিট আটকানোর জন্য ইনপুটগুলোর ভ্যালু ফাক্কা করে হাইড করে দেওয়া হচ্ছে
+                rowElement.querySelectorAll('input').forEach(input => input.value = '');
+                rowElement.classList.add('hidden');
+            }
+        }
+
+        // পপ-আপ ছাড়া ডাইনামিক পেজেই সুইচ করার লজিক
+        function switchToEditMode() {
+            document.getElementById('input-container').classList.remove('hidden');
+            const resultsWrapper = document.getElementById('results-display-wrapper');
+            if (resultsWrapper) resultsWrapper.classList.add('hidden');
+            
+            document.getElementById('toggle-edit-btn').classList.add('hidden');
+            document.getElementById('toggle-edit-sub').classList.add('hidden');
+        }
+
+        function cancelEditMode() {
+            document.getElementById('input-container').classList.add('hidden');
+            const resultsWrapper = document.getElementById('results-display-wrapper');
+            if (resultsWrapper) resultsWrapper.classList.remove('hidden');
+            
+            document.getElementById('toggle-edit-btn').classList.remove('hidden');
+            document.getElementById('toggle-edit-sub').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

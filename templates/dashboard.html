@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Terminal Dashboard: Scheduling Matrix</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-6">
+    <div class="max-w-6xl mx-auto space-y-6">
+        
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-slate-800 p-6 rounded-2xl border border-slate-700 gap-4">
+            <div>
+                <h1 class="text-3xl font-extrabold uppercase tracking-wide text-white">Dispatcher Panel: {{ algo|upper }}</h1>
+                <p class="text-blue-400 font-medium max-w-xl text-sm mt-1">{{ description }}</p>
+            </div>
+            <div class="flex gap-3">
+                <a href="/select-algorithm" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-sm rounded-xl font-medium transition">&larr; Switch Scheduling Policy</a>
+                <a href="/home" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-sm font-medium rounded-xl transition">Alter Fleet Data</a>
+            </div>
+        </div>
+
+        {% if algo == 'rr' or algo == 'priority' %}
+        <div class="bg-slate-800/50 p-6 rounded-2xl border border-slate-700/80">
+            <h3 class="text-lg font-bold mb-4 text-slate-200">Terminal Constraint Adjustments</h3>
+            <form method="POST" class="flex items-end gap-6">
+                {% if algo == 'rr' %}
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-slate-400 mb-2">Max Bay Stay Limit (Quantum)</label>
+                    <input type="number" name="quantum" min="1" value="{{ quantum }}" class="bg-slate-900 border border-slate-700 px-4 py-2 rounded-lg text-white w-32 focus:outline-none focus:border-pink-500">
+                </div>
+                {% endif %}
+
+                {% if algo == 'priority' %}
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+                    {% for b in results %}
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Priority for {{ b.id }} (Lower = VIP)</label>
+                        <input type="number" name="priority_{{ b.id }}" min="0" value="{{ b.priority }}" class="w-full bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-lg text-white">
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <button type="submit" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold rounded-lg transition">Re-schedule Terminal</button>
+            </form>
+        </div>
+        {% endif %}
+
+        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+            <h3 class="text-xl font-bold text-white mb-4">Interactive Departure Bay Timeline (Gantt Chart)</h3>
+            <div class="h-64 relative">
+                <canvas id="ganttChart"></canvas>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-gradient-to-br from-blue-900/40 to-slate-800 p-6 rounded-2xl border border-blue-500/20 text-center">
+                <span class="text-xs uppercase text-blue-400 tracking-widest font-semibold">Mean Total Terminal Stay Duration (Average Stay)</span>
+                <p class="text-4xl font-black mt-2 text-white">{{ avg_tst }} <span class="text-lg font-normal text-slate-400">Mins/Hours</span></p>
+            </div>
+            <div class="bg-gradient-to-br from-emerald-900/40 to-slate-800 p-6 rounded-2xl border border-emerald-500/20 text-center">
+                <span class="text-xs uppercase text-emerald-400 tracking-widest font-semibold">Mean Idle Waiting Delay at Gate (Average Delay)</span>
+                <p class="text-4xl font-black mt-2 text-white">{{ avg_wt }} <span class="text-lg font-normal text-slate-400">Mins/Hours</span></p>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-slate-800 via-slate-800/90 to-slate-900 p-6 rounded-2xl border 
+            {% if insights.verdict_status == 'Maximum Efficiency' or insights.verdict_status == 'Optimal Speed' %} border-emerald-500/30 shadow-emerald-950/10
+            {% elif insights.verdict_status == 'Critical Delay' %} border-rose-500/30 shadow-rose-950/10
+            {% else %} border-blue-500/20 shadow-blue-950/10 {% endif %} border shadow-xl space-y-4">
+            
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-700/60 pb-3 gap-2">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-xl">📊</span>
+                    <div>
+                        <h3 class="text-base font-bold text-white tracking-wide">Terminal Efficiency Verdict</h3>
+                        <p class="text-xs text-slate-400">Deterministic log evaluation for the active dispatch sequence</p>
+                    </div>
+                </div>
+                <div class="px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full 
+                    {% if insights.verdict_status == 'Maximum Efficiency' or insights.verdict_status == 'Optimal Speed' %} bg-emerald-500/10 text-emerald-400 border border-emerald-500/20
+                    {% elif insights.verdict_status == 'Critical Delay' %} bg-rose-500/10 text-rose-400 border border-rose-500/20
+                    {% else %} bg-blue-500/10 text-blue-400 border border-blue-500/20 {% endif %}">
+                    Current Status: {{ insights.verdict_status }}
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-1">
+                <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700/40 flex gap-3">
+                    <div class="text-rose-400 font-bold text-lg mt-0.5">⚠️</div>
+                    <div>
+                        <span class="text-xs font-semibold text-rose-400 uppercase tracking-widest block mb-1">Identified Bottleneck / Weakness</span>
+                        <p class="text-sm font-bold text-slate-200 mb-1">{{ insights.verdict_title }}</p>
+                        <p class="text-xs text-slate-400 leading-relaxed">{{ insights.weakness }}</p>
+                    </div>
+                </div>
+                
+                <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700/40 flex gap-3">
+                    <div class="text-amber-400 font-bold text-lg mt-0.5">🚀</div>
+                    <div>
+                        <span class="text-xs font-semibold text-amber-400 uppercase tracking-widest block mb-1">Actionable Operational Strategy</span>
+                        <p class="text-xs text-slate-300 leading-relaxed font-medium">{{ insights.actionable_strategy }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
+            <table class="w-full text-left text-sm text-slate-300">
+                <thead class="bg-slate-900 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-700">
+                    <tr>
+                        <th class="px-6 py-4">Bus Route ID</th>
+                        <th class="px-6 py-4">Terminal Arrival</th>
+                        <th class="px-6 py-4">Boarding Duration</th>
+                        {% if algo == 'priority' %}<th class="px-6 py-4">VIP Rank</th>{% endif %}
+                        <th class="px-6 py-4">Terminal Departure</th>
+                        <th class="px-6 py-4">Total Stay Duration</th>
+                        <th class="px-6 py-4">Bay Waiting Delay</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-700/60">
+                    {% for row in results %}
+                    <tr class="hover:bg-slate-700/30 transition">
+                        <td class="px-6 py-4 text-white font-bold">{{ row.id }}</td>
+                        <td class="px-6 py-4">{{ row.arrival }}</td>
+                        <td class="px-6 py-4">{{ row.boarding }}</td>
+                        {% if algo == 'priority' %}<td class="px-6 py-4 text-amber-400 font-semibold">{{ row.priority }}</td>{% endif %}
+                        <td class="px-6 py-4 font-medium text-slate-100">{{ row.dt }}</td>
+                        <td class="px-6 py-4 text-blue-400 font-semibold">{{ row.tst }}</td>
+                        <td class="px-6 py-4 text-emerald-400 font-semibold">{{ row.wt }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+    const rawGanttData = JSON.parse('{{ gantt|tojson | safe }}');
+    const uniqueBusIds = [...new Set(rawGanttData.map(block => block.bus_id))];
+    
+    const busColors = [
+        { back: 'rgba(59, 130, 246, 0.25)', border: '#3b82f6' },  // Ocean Blue (Local Coach)
+        { back: 'rgba(16, 185, 129, 0.25)', border: '#10b981' },  // Emerald Green (Express)
+        { back: 'rgba(245, 158, 11, 0.25)', border: '#f59e0b' },  // Neon Amber (VIP Shuttle)
+        { back: 'rgba(236, 72, 153, 0.25)', border: '#ec4899' },  // Rose Pink (BRTC AC)
+        { back: 'rgba(139, 92, 246, 0.25)', border: '#8b5cf6' },  // Electric Purple (Intercity)
+        { back: 'rgba(239, 68, 68, 0.25)',  border: '#ef4444' }   // Crimson Red (Sleeper)
+    ];
+
+    const datasets = uniqueBusIds.map((busId, index) => {
+        const busSegments = rawGanttData.filter(block => block.bus_id === busId);
+        const dataPoints = busSegments.map(segment => ({
+            x: [segment.start, segment.end],
+            y: busId
+        }));
+
+        const theme = busColors[index % busColors.length];
+
+        return {
+            label: `Active Window: ${busId}`,
+            data: dataPoints,
+            backgroundColor: theme.back,
+            borderColor: theme.border,
+            borderWidth: 2,
+            borderRadius: 6,
+            borderSkipped: false,
+            barPercentage: 0.4,
+            hoverBackgroundColor: theme.border,
+            hoverBorderWidth: 3
+        };
+    });
+
+    const ctx = document.getElementById('ganttChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: uniqueBusIds,
+            datasets: datasets
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'nearest',
+                intersect: true
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#0f172a',
+                    titleColor: '#3b82f6',
+                    titleFont: { size: 14, weight: 'bold' },
+                    bodyColor: '#f1f5f9',
+                    bodyFont: { size: 13 },
+                    padding: 12,
+                    borderColor: '#334155',
+                    borderWidth: 1,
+                    displayColors: true,
+                    callbacks: {
+                        title: function(context) {
+                            return `🚌 Fleet Identifier: ${context[0].raw.y}`;
+                        },
+                        label: function(context) {
+                            const bounds = context.raw.x;
+                            const duration = bounds[1] - bounds[0];
+                            return [
+                                `• Platform Status : Occupied & Loading`,
+                                `• Schedule Window : Mins [${bounds[0]} → ${bounds[1]}]`,
+                                `• Total Bay Stay  : ${duration} Mins`
+                            ];
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    type: 'linear',
+                    position: 'bottom',
+                    min: 0,
+                    title: { 
+                        display: true, 
+                        text: '⏱️ TERMINAL TIMELINE STREAM (MINUTES / HOURS)', 
+                        color: '#94a3b8',
+                        font: { size: 11, weight: '800', family: 'monospace' }
+                    },
+                    grid: { 
+                        color: 'rgba(51, 65, 85, 0.3)',
+                        drawTicks: true
+                    },
+                    ticks: { 
+                        color: '#94a3b8', 
+                        stepSize: 1,
+                        font: { weight: '600' }
+                    }
+                },
+                y: {
+                    stacked: false,
+                    grid: { display: false },
+                    ticks: { 
+                        color: '#ffffff',
+                        font: { size: 13, weight: 'bold' },
+                        padding: 10
+                    }
+                }
+            }
+        }
+    });
+</script>
+</body>
+</html>

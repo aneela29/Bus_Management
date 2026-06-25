@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome | Fleet Dispatcher Matrix</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-center items-center p-6 relative overflow-hidden">
+    
+    <div class="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="max-w-2xl w-full text-center space-y-8 z-10">
+        
+        <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-xl shadow-indigo-950/50 transform -rotate-6 hover:rotate-0 transition duration-300">
+            <span class="text-4xl">🚌</span>
+        </div>
+
+        <div class="space-y-3">
+            <h1 class="text-4xl md:text-5xl font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-slate-400">
+                Fleet Dispatcher <br>
+                <span class="text-blue-500">Scheduling Matrix</span>
+            </h1>
+            <p class="text-slate-400 text-sm md:text-base max-w-lg mx-auto leading-relaxed">
+                An advanced simulator to orchestrate terminal bay entry times, mitigate convoy hazards, and maximize bus boarding throughput using deterministic mathematical models.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left max-w-xl mx-auto pt-4">
+            <div class="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50">
+                <span class="text-lg">📊</span>
+                <h4 class="text-xs font-bold text-white mt-1 uppercase tracking-wider">Dynamic Gantt</h4>
+                <p class="text-[11px] text-slate-400 mt-0.5">Interactive timeline tracking platform lane occupations.</p>
+            </div>
+            <div class="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50">
+                <span class="text-lg">🧠</span>
+                <h4 class="text-xs font-bold text-white mt-1 uppercase tracking-wider">Smart Analyzer</h4>
+                <p class="text-[11px] text-slate-400 mt-0.5">Pre-calculates queues to recommend optimal policies.</p>
+            </div>
+            <div class="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50">
+                <span class="text-lg">⏱️</span>
+                <h4 class="text-xs font-bold text-white mt-1 uppercase tracking-wider">5 Core Algos</h4>
+                <p class="text-[11px] text-slate-400 mt-0.5">Simulate FCFS, SJF, SRTF, Priority, and Round Robin.</p>
+            </div>
+        </div>
+
+        <div class="pt-6">
+            <a href="/" class="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold rounded-xl shadow-xl shadow-indigo-950/50 transform hover:-translate-y-0.5 transition duration-200 active:translate-y-0">
+                <span>Launch Dispatch Panel</span>
+                <span class="text-lg transition-transform duration-200 group-hover:translate-x-1">&rarr;</span>
+            </a>
+            <p class="text-[10px] text-slate-500 mt-2 font-medium">No initial setup required • Ready for terminal matrix input</p>
+        </div>
+
+        <div class="pt-8 text-slate-600 text-[11px] font-semibold tracking-widest uppercase">
+            IIUC Bus Fleet Optimization Engine &copy; 2026
+        </div>
+
+    </div>
+</body>
+</html>

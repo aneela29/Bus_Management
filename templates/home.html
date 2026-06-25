@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Input Bus Fleet Profile</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-8">
+    <div class="max-w-4xl mx-auto">
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-white">Configure Terminal Schedule</h1>
+                <p class="text-slate-400 text-sm">Populate schedule profiles for incoming terminal buses</p>
+            </div>
+            <a href="/reset" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm font-medium border border-slate-700 transition">Reset Bus Fleet</a>
+        </div>
+
+        <form method="POST" class="space-y-6">
+            <div id="bus-container" class="space-y-4">
+                <div class="grid grid-cols-3 gap-4 bg-slate-800/50 p-4 rounded-xl border border-slate-700/60 dynamic-row">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Bus No / Route Code</label>
+                        <input type="text" name="bus_id[]" placeholder="e.g. ENA-01, HANIF-02" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Arrival Time at Gate</label>
+                        <input type="number" name="arrival_time[]" min="0" placeholder="e.g. 0 (Mins/Hour)" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Required Boarding Time</label>
+                        <!-- name পরিবর্তন করে boarding_time[] করা হয়েছে -->
+                        <input type="number" name="boarding_time[]" min="1" placeholder="e.g. 5 (Mins/Hour)" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-4 pt-4">
+                <button type="button" onclick="addNewRow()" class="flex-1 py-3 bg-slate-800 border border-slate-700 rounded-xl font-semibold text-slate-300 hover:bg-slate-700 transition">
+                    + Add Additional Bus
+                </button>
+                <button type="submit" class="flex-1 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 rounded-xl font-bold text-white transition shadow-lg shadow-teal-500/10">
+                    Save Fleet & Select Algorithm
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        function addNewRow() {
+            const container = document.getElementById('bus-container');
+            const newRow = document.querySelector('.dynamic-row').cloneNode(true);
+            const inputs = newRow.querySelectorAll('input');
+            inputs.forEach(input => input.value = '');
+            container.appendChild(newRow);
+        }
+    </script>
+</body>
+</html>
