@@ -30,7 +30,7 @@ def home():
                     'id': bus_id_clean,
                     'arrival': int(arrivals[i]) if arrivals[i] else 0,
                     'boarding': int(boardings[i]) if boardings[i] else 1,
-                    'priority': 0 # Initialize default priority value
+                    'priority': 0 
                 })
         
         session['bus_data'] = bus_data
@@ -61,8 +61,6 @@ def select_algorithm():
             'comparisons': {}
         }
         return render_template('select_algorithm.html', recommendation=recommendation)
-
-    # Helper function to simulate a route and calculate its true average turnaround time (tst)
     def calculate_simulation_att(algo_type):
         try:
             sim_data = copy.deepcopy(bus_data)
@@ -84,8 +82,6 @@ def select_algorithm():
             return 999.0
         except Exception:
             return 999.0
-
-    # Execute simulation and grab true mathematical numbers
     att_fcfs = calculate_simulation_att('fcfs')
     att_sjf = calculate_simulation_att('sjf')
     att_srtf = calculate_simulation_att('srtf')
@@ -138,8 +134,6 @@ def dashboard(algo):
 
     results = []
     gantt = []
-    
-    # Run the real simulation for display view
     if algo == 'fcfs':
         results, gantt = backend.run_fcfs(bus_data)
     elif algo == 'sjf':

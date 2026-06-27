@@ -120,8 +120,6 @@
                 row.remove();
             }
         }
-
-        // New Validation Engine to guard against identical IDs
         function validateForm() {
             const idInputs = document.querySelectorAll('input[name="bus_id[]"]');
             const values = [];
@@ -132,7 +130,7 @@
                     if (values.includes(val)) {
                         alert(`❌ Duplicate Entry Detected: The Bus ID "${input.value}" has been used more than once. Please assign unique identifiers.`);
                         input.focus();
-                        return false; // Blocks form submission execution context
+                        return false; 
                     }
                     values.push(val);
                 }

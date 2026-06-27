@@ -3,20 +3,18 @@
 class Bus:
     def __init__(self, bus_id, arrival_time, boarding_time, priority=0):
         self.bus_id = bus_id
-        self.arrival_time = arrival_time            # টার্মিনালে আসার সময়
-        self.boarding_time = boarding_time          # যাত্রী উঠার সময় (আগে ছিল burst_time)
+        self.arrival_time = arrival_time            
+        self.boarding_time = boarding_time         
         self.priority = priority
-        self.remaining_boarding_time = boarding_time # বাকি থাকা বোর্ডিং সময়
-        self.start_loading_time = -1                # কখন যাত্রী উঠানো শুরু হলো
-        self.departure_time = 0                     # টার্মিনাল ছাড়ার সময় (completion_time)
-        self.waiting_time = 0                       # অলস দাঁড়িয়ে থাকার সময় (waiting_time)
-        self.total_stay_time = 0                    # মোট টার্মিনালে কাটানো সময় (turnaround_time)
+        self.remaining_boarding_time = boarding_time 
+        self.start_loading_time = -1               
+        self.departure_time = 0                     
+        self.waiting_time = 0                      
+        self.total_stay_time = 0                    
 
 def calculate_metrics(buses):
     for bus in buses:
-        # Total Stay = Departure Time - Arrival Time
         bus.total_stay_time = bus.departure_time - bus.arrival_time
-        # Waiting Time = Total Stay - Boarding Time
         bus.waiting_time = bus.total_stay_time - bus.boarding_time
     return buses
 
@@ -223,29 +221,19 @@ def run_rr(bus_data, quantum):
             
     return calculate_metrics(buses), gantt_chart
 def get_operational_insights(algo, results, avg_wt, avg_tst, quantum=2):
-    """
-    পিওর ম্যাথমেটিক্যাল ডেটার ওপর ভিত্তি করে অ্যালগরিদমের কার্যকারিতা, 
-    দুর্বলতা এবং পরবর্তী করণীয় পরামর্শ তৈরি করার ইঞ্জিন।
-    """
     insights = {
         'verdict_title': '',
         'verdict_status': '',  # Optimal, Sub-Optimal, Critical
         'weakness': '',
         'actionable_strategy': ''
     }
-    
-    # ইনপুট বাসের সংখ্যা
     total_buses = len(results)
     if total_buses == 0:
         return insights
-
-    # কনটেক্সট বের করার জন্য শর্ট ও লং বাসের সংখ্যা কাউন্ট করা
     short_buses = sum(1 for b in results if b.boarding_time <= 3)
     long_buses = sum(1 for b in results if b.boarding_time >= 7)
-    
-    # ১. FCFS এর জন্য অ্যানালাইসিস
     if algo == 'fcfs':
-        # যদি কোনো লম্বা বাস আগে এসে শর্ট বাসকে আটকে দেয় (Convoy Effect)
+
         convoy_detected = False
         if total_buses > 1:
             sorted_by_arrival = sorted(results, key=lambda x: x.arrival_time)
@@ -262,29 +250,21 @@ def get_operational_insights(algo, results, avg_wt, avg_tst, quantum=2):
             insights['verdict_status'] = "Sub-Optimal"
             insights['weakness'] = "Strictly non-preemptive. Does not consider boarding speed or passenger volume, risking unnecessary gate idle times."
             insights['actionable_strategy'] = "If passenger traffic spikes or mixed bus sizes arrive, shift to 'Round Robin' to ensure fair lane distribution."
-
-    # ২. SJF এর জন্য অ্যানালাইসিস
     elif algo == 'sjf':
         insights['verdict_title'] = "High Platform Throughput"
         insights['verdict_status'] = "Optimal Speed"
         insights['weakness'] = "Starvation Risk! Long-route/intercity buses are constantly pushed to the back of the queue if small vans keep arriving."
         insights['actionable_strategy'] = "To prevent long-route operators from protesting, switch to 'Priority Scheduling' and assign high-priority ranks to delayed intercity liners."
-
-    # ৩. SRTF এর জন্য অ্যানালাইসিস
     elif algo == 'srtf':
         insights['verdict_title'] = "Absolute Minimum Wait Time"
         insights['verdict_status'] = "Maximum Efficiency"
         insights['weakness'] = "High Preemption Overhead. Buses are repeatedly forced to halt their loading halfway to clear the gate for incoming faster vans."
         insights['actionable_strategy'] = "While mathematically fastest, pulling buses out of bays repeatedly confuses boarding passengers. Ensure your digital platform signage updates instantly, or switch to 'Round Robin' for predictable time slots."
-
-    # ৪. Priority এর জন্য অ্যানালাইসিস
     elif algo == 'priority':
         insights['verdict_title'] = "VIP Route Enforcement"
         insights['verdict_status'] = "Policy Driven"
         insights['weakness'] = "Low-priority commuter or local buses can face indefinite delays if higher-priority VIP express buses keep arriving at the gate."
         insights['actionable_strategy'] = f"Current Average Delay is {avg_wt} mins. If local lane queues exceed 4 buses, temporarily implement an 'Aging Factor' (manually increase priority of waiting local buses) to clear the backlog."
-
-    # ৫. Round Robin (RR) এর জন্য অ্যানালাইসিস
     elif algo == 'rr':
         if quantum <= 2:
             insights['verdict_title'] = "Rapid Multi-Lane Rotation"
